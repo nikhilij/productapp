@@ -1,68 +1,110 @@
-import { Link } from "react-router-dom";
-import { useLogin } from "../hooks/useLogin"; // adjust path if needed
+import { useState, useEffect } from "react";
+import { login } from "../api/auth";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate, Link } from "react-router-dom";
 
 const Login = () => {
-  const { formData, handleChange, handleLogin, error, loading } = useLogin();
+  const { login: setToken, token } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (token) {
+      navigate("/products");
+    }
+  }, [token, navigate]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErr("");
+
+    try {
+      const res = await login({ email, password });
+      const token = res.data.data?.access_token || res.data.access_token;
+
+      if (!token) {
+        throw new Error("Token not found in response");
+      }
+
+      setToken(token);
+      navigate("/products");
+    } catch (error) {
+      console.error("Login error:", error);
+      setErr(error.response?.data?.message || "Invalid credentials");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-gray-100">
-      <div className="bg-white p-10 rounded-xl shadow-2xl w-full max-w-md">
-        <h2 className="text-3xl font-bold mb-8 text-center text-gray-800">Welcome Back</h2>
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              placeholder="Enter your email"
-              value={formData.email}
-              onChange={handleChange}
-              autoComplete="email"
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              placeholder="Enter your password"
-              value={formData.password}
-              onChange={handleChange}
-              autoComplete="current-password"
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-            />
-          </div>
+    <div className="min-h-screen flex flex-col">
+      <nav className="w-full flex justify-between items-center px-10 py-6 shadow-md bg-white">
+        <h2 className="text-2xl font-bold text-blue-600">ProductManager</h2>
+        <div>
           <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-300 font-medium text-lg"
+            onClick={() => navigate("/")}
+            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition"
           >
-            {loading ? "Signing In..." : "Sign In"}
+            Go Back
           </button>
-        </form>
-        {error && (
-          <p className="text-red-500 text-sm mt-4 text-center py-2 px-3 bg-red-50 rounded-lg">
-            {error}
+        </div>
+      </nav>
+      <div className="flex-grow flex items-center justify-center bg-gray-100">
+        <div className="max-w-md w-full bg-white p-8 shadow-lg rounded-lg">
+          <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Welcome Back</h2>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                placeholder="Your password"
+                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            {err && <p className="text-red-500 text-sm text-center">{err}</p>}
+
+            <button
+              className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition duration-200 disabled:opacity-50"
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? "Logging in..." : "Login"}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-gray-600">
+            Don't have an account?{" "}
+            <Link to="/signup" className="text-blue-600 hover:underline">
+              Sign up
+            </Link>
           </p>
-        )}
-        <p className="text-center mt-6 text-gray-600">
-          Don't have an account?{" "}
-          <Link
-            to="/register"
-            className="text-blue-600 hover:text-blue-800 font-medium hover:underline transition"
-          >
-            Sign up
-          </Link>
-        </p>
+        </div>
       </div>
     </div>
   );
